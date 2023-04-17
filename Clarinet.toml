@@ -1,0 +1,51 @@
+[project]
+name = 'bridge-stacks-contract'
+description = ''
+authors = []
+telemetry = false
+cache_dir = './.cache'
+
+[[project.requirements]]
+contract_id = 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard'
+[contracts.bridge]
+path = 'contracts/bridge.clar'
+clarity_version = 2
+epoch = 2.1
+
+[contracts.bridge-token-trait]
+path = 'contracts/traits/bridge-token.clar'
+clarity_version = 2
+epoch = 2.1
+
+[contracts.native-token]
+path = 'contracts/tokens/n-token.clar'
+clarity_version = 2
+epoch = 2.1
+
+[contracts.ownable-trait]
+path = 'contracts/traits/ownable.clar'
+clarity_version = 2
+epoch = 2.1
+
+#[contracts.sip-010-trait]
+#path = 'contracts/traits/sip-010.clar'
+#clarity_version = 2
+#epoch = 2.1
+
+[contracts.wrapped-token]
+path = 'contracts/tokens/w-token.clar'
+clarity_version = 2
+epoch = 2.1
+
+[contracts.wstx]
+path = 'contracts/tokens/w-stx.clar'
+clarity_version = 2
+epoch = 2.1
+[repl.analysis]
+passes = ['check_checker']
+
+[repl.analysis.check_checker]
+strict = false
+trusted_sender = false
+trusted_caller = false
+callee_filter = false
