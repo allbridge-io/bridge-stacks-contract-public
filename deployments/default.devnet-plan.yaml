@@ -10,9 +10,9 @@ plan:
       transactions:
         - requirement-publish:
             contract-id: SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard
-            remap-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            remap-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
             remap-principals:
-              SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+              SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
             cost: 8400
             path: "./.cache/requirements/SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.clar"
             clarity-version: 1
@@ -21,44 +21,44 @@ plan:
       transactions:
         - contract-publish:
             contract-name: ownable-trait
-            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            expected-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
             cost: 1430
             path: contracts/traits/ownable.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
             contract-name: bridge-token-trait
-            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            expected-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
             cost: 7800
             path: contracts/traits/bridge-token.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
             contract-name: bridge
-            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            cost: 200980
+            expected-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
+            cost: 220780
             path: contracts/bridge.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
-            contract-name: native-token
-            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            cost: 34400
-            path: contracts/tokens/n-token.clar
+            contract-name: stx
+            expected-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
+            cost: 19130
+            path: contracts/tokens/i-stx.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
-            contract-name: wrapped-token
-            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            cost: 34080
-            path: contracts/tokens/w-token.clar
-            anchor-block-only: true
-            clarity-version: 2
+             contract-name: native-token
+             expected-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
+             cost: 33860
+             path: contracts/tokens/n-token.clar
+             anchor-block-only: true
+             clarity-version: 2
         - contract-publish:
-            contract-name: wstx
-            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            cost: 26360
-            path: contracts/tokens/w-stx.clar
-            anchor-block-only: true
-            clarity-version: 2
+             contract-name: wrapped-token
+             expected-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
+             cost: 42500
+             path: contracts/tokens/w-token.clar
+             anchor-block-only: true
+             clarity-version: 2
       epoch: "2.1"

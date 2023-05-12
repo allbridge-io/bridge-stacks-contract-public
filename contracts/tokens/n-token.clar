@@ -88,22 +88,14 @@
 		(asserts! (is-standard sender) ERR-WRONG-PRINCIPAL)
 		(asserts! (is-standard recipient) ERR-WRONG-PRINCIPAL)
 		(asserts! (is-eq (> amount u0) true) ERR-WRONG-AMOUNT)
-		(asserts! (or (is-eq sender tx-sender) 
-						(is-eq contract-caller (var-get contract-owner))
-				) ERR-NOT-AUTHORIZED)
-		(if (is-eq sender (var-get contract-owner))
-			(mint! recipient amount memo)
-			(if (is-eq recipient (var-get contract-owner))
-				(burn! sender amount memo)
-				(transfer! amount sender recipient memo)
-			)
-		)
+		(asserts! (is-eq sender tx-sender) ERR-NOT-AUTHORIZED)
+		(transfer! amount sender recipient memo)
 	)
 )
 
 ;; Mint tokens
-(define-private 
-	(mint! 
+(define-public 
+	(mint
 		(recipient principal)
 		(amount uint)
 		(memo (optional (buff 34)))
@@ -123,8 +115,8 @@
 )
 
 ;; Burn tokens
-(define-private 
-	(burn! 
+(define-public 
+	(burn 
 		(sender principal)
 		(amount uint)
 		(memo (optional (buff 34)))

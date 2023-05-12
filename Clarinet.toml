@@ -37,8 +37,8 @@ path = 'contracts/tokens/w-token.clar'
 clarity_version = 2
 epoch = 2.1
 
-[contracts.wstx]
-path = 'contracts/tokens/w-stx.clar'
+[contracts.istx]
+path = 'contracts/tokens/i-stx.clar'
 clarity_version = 2
 epoch = 2.1
 [repl.analysis]

@@ -38,6 +38,7 @@
 (define-constant ERR-SAME-CHAIN u20001)
 (define-constant ERR-LOCK-NOT-CREATED u20002)
 (define-constant ERR-WRONG-LOCK-ID u20003)
+(define-constant ERR-WRONG-UNLOCK-ID u20004)
 
 ;; Supported token types
 (define-constant TOKEN-TYPE-BASE u100)
@@ -109,9 +110,10 @@
         (precision (try! (contract-call? token get-decimals)))
       )
       (try! (assert-valid-token-input token-source token-address precision type min-fee))
-      (if (is-eq type TOKEN-TYPE-WRAPPED)
+      (if (or (is-eq type TOKEN-TYPE-WRAPPED)
+              (is-eq type TOKEN-TYPE-BASE))
         (asserts! (is-eq (try! (contract-call? token get-contract-owner)) .bridge) (err ERR-WRONG-OWNER))
-        (asserts! (or (is-eq type TOKEN-TYPE-NATIVE) (is-eq type TOKEN-TYPE-BASE)) (err ERR-WRONG-TOKEN-TYPE))
+        (asserts! (is-eq type TOKEN-TYPE-NATIVE) (err ERR-WRONG-TOKEN-TYPE))
       )
       (ok (try! (save-token token-source token-address precision min-fee type)))
     )
@@ -136,15 +138,20 @@
       (try! (assert-token-exists-in-asset-source-map token-source))
       (try! (assert-token-exists-in-assets-map token-address))
       ;; Check if token type is correct
-      (try! (assert-token-type token-type))
 
       (if (or (is-eq token-type TOKEN-TYPE-NATIVE) (is-eq token-type TOKEN-TYPE-BASE))
           ;; Transfer all tokens to the new owner
-          (asserts! (is-eq (try! (as-contract (safe-transfer! token .bridge new-owner (try! (contract-call? token get-balance .bridge))))) true)
+          (asserts! (or (is-eq (try! (contract-call? token get-balance .bridge)) u0)
+            (is-eq (try! (as-contract (safe-transfer! token .bridge new-owner (try! (contract-call? token get-balance .bridge))))) true))
             (err ERR-TRANSFER-OWNERSHIP-FAILED))
+          ;; Transfer ownership to the new owner
+          (try! (assert-token-type token-type))
+      )
+      (if (or (is-eq token-type TOKEN-TYPE-WRAPPED) (is-eq token-type TOKEN-TYPE-BASE))
           ;; Transfer ownership to the new owner
           (asserts! (is-eq (try! (as-contract (contract-call? token set-contract-owner new-owner))) true)
             (err ERR-TRANSFER-OWNERSHIP-FAILED))
+          (try! (assert-token-type token-type))
       )
       ;; Remove token from the bridge
       (ok (try! (clean-assets-maps token-source token-address)))
@@ -170,10 +177,11 @@
         (token-type (get token-type token-info))
         (token-source (get token-source token-info))
         (precision (get precision token-info))
+        (sender tx-sender)
       )
       ;; check if token is supported
       (try! (assert-token-type token-type))
-      ;; check if amount is greater than fee
+      ;; ;; check if amount is greater than fee
       (asserts! (> amount fee) (err ERR-AMOUNT-IS-TOO-SMALL))
       (let
         ((amount-to-lock (- amount fee)))
@@ -192,7 +200,7 @@
 (define-public
   (unlock
     (lock-id (buff 16))
-    (recipient (buff 20))
+    (recipient-principal principal)
     (system-amount uint)
     (lock-source (buff 4))
     (token <sip-010-token>)
@@ -200,15 +208,15 @@
   )
   (begin
     ;; Check if input is valid
-    (try! (assert-unlock-input lock-id recipient system-amount lock-source (contract-of token) signature))
+    (try! (assert-unlock-input lock-id recipient-principal system-amount lock-source (contract-of token) signature))
     (let (
         (token-info (unwrap! (map-get? assets {address: (contract-of token)}) (err ERR-TOKEN-DOES-NOT-EXIST)))
         (amount (from-system-precision system-amount (get precision token-info)))
         (token-type (get token-type token-info))
         (token-source (get token-source token-info))
         (precision (get precision token-info))
+        (recipient (get hash-bytes (unwrap-panic (principal-destruct? recipient-principal))))
         (unlock-created (try! (create-unlock lock-id recipient system-amount lock-source token-source signature)))
-        (recipient-principal (unwrap-panic (principal-construct? ENV-VERSION recipient)))
       )
       ;; check if token is supported
       (try! (assert-token-type token-type))
@@ -476,6 +484,28 @@
   )
 )
 
+;; Method returns lock data by the lock-id
+(define-read-only 
+  (get-lock (lock-id (buff 16)))
+  (begin 
+    (match 
+      (map-get? locks {lock-id: lock-id})
+      value (ok value)
+      (err ERR-WRONG-LOCK-ID))
+  )
+)
+
+;; Method returns is lock claimed with the given lock-id
+(define-read-only 
+  (is-claimed (lock-id (buff 20)))
+  (begin 
+    (match 
+      (map-get? unlocks {chain-lock-id: lock-id})
+      value (ok value)
+      (err ERR-WRONG-UNLOCK-ID))
+  )
+)
+
 ;; Add new token to the bridge asset and asset-source maps
 (define-private 
   (save-token
@@ -675,7 +705,7 @@
 (define-private 
   (assert-unlock-input
     (lock-id (buff 16))
-    (recipient (buff 20))
+    (recipient principal)
     (system-amount uint)
     (lock-source (buff 4))
     (token principal)
@@ -684,7 +714,7 @@
   (begin
     (asserts! (is-eq (var-get is-bridge-enabled) true) (err ERR-BRIDGE-IS-DISABLED))
     (asserts! (is-eq VERSION (unwrap! (element-at lock-id u0) (err ERR-INTERNAL))) (err ERR-WRONG-VERSION))
-    (asserts! (is-eq (len recipient) u20) (err ERR-WRONG-RECIPIENT))
+    (asserts! (is-standard recipient) (err ERR-WRONG-RECIPIENT))
     (asserts! (is-eq (> system-amount u0) true) (err ERR-AMOUNT-IS-ZERO))
     (asserts! (is-eq (len lock-source) u4) (err ERR-WRONG-LOCK-SOURCE))
     (try! (assert-principal token))

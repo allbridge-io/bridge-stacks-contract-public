@@ -10,7 +10,7 @@ Clarinet.test({
 
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         
 		let getContractOwner = chain.callReadOnlyFn(token_address, 'get-contract-owner', [], deployer.address);
 		getContractOwner.result.expectOk().expectPrincipal(deployer.address);
@@ -32,7 +32,7 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let deployer_principle = types.principal(deployer.address);
         
         let tokenBlock = chain.mineBlock([
@@ -62,14 +62,14 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 	
 		let getoTotalSupply = chain.callReadOnlyFn(token_address, 'get-total-supply', [], deployer.address);
 		getoTotalSupply.result.expectOk().expectUint(0);
 		let getoName = chain.callReadOnlyFn(token_address, 'get-name', [], deployer.address);
-		getoName.result.expectOk().expectAscii('Wrapped STX');
+		getoName.result.expectOk().expectAscii('Stacks');
 		let getoSymbol = chain.callReadOnlyFn(token_address, 'get-symbol', [], deployer.address);
-		getoSymbol.result.expectOk().expectAscii('wstx');
+		getoSymbol.result.expectOk().expectAscii('STX');
 		let getoDecimals = chain.callReadOnlyFn(token_address, 'get-decimals', [], deployer.address);
 		getoDecimals.result.expectOk().expectUint(6);
 		let getTokenURI = chain.callReadOnlyFn(token_address, 'get-token-uri', [], deployer.address);
@@ -82,7 +82,7 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         
 		let getTokenURIBefore = chain.callReadOnlyFn(token_address, 'get-token-uri', [], deployer.address);
 		getTokenURIBefore.result.expectOk().expectSome().expectUtf8('');
@@ -103,7 +103,7 @@ Clarinet.test({
 
         let wallet_1 = accounts.get('wallet_1')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         
 		let getTokenURIBefore = chain.callReadOnlyFn(token_address, 'get-token-uri', [], wallet_1.address);
 		getTokenURIBefore.result.expectOk().expectSome().expectUtf8('');
@@ -127,10 +127,10 @@ Clarinet.test({
 
         let wallet_1 = accounts.get('wallet_1')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let assetsBefore = chain.getAssetsMaps();
 		assertEquals("STX" in assetsBefore.assets, true);
-		assertEquals(".wstx.wstx" in assetsBefore.assets, false);
+		assertEquals(".istx.istx" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
 			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
@@ -151,7 +151,7 @@ Clarinet.test({
 			wallet_1.address
 		);
 		let assetsAfter = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfter.assets, false);
+		assertEquals(".istx.istx" in assetsAfter.assets, false);
 		assertEquals(assetsAfter.assets[`STX`][wallet_1.address], 100000000001000);
 		let balanceOf = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
 		balanceOf.result.expectOk().expectUint(100000000001000);
@@ -164,10 +164,10 @@ Clarinet.test({
         let wallet_1 = accounts.get('wallet_1')!;
         let wallet_2 = accounts.get('wallet_2')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let assetsBefore = chain.getAssetsMaps();
 		assertEquals("STX" in assetsBefore.assets, true);
-		assertEquals(".wstx.wstx" in assetsBefore.assets, false);
+		assertEquals(".istx.istx" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
 			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
@@ -191,10 +191,10 @@ Clarinet.test({
 	async fn(chain: Chain, accounts: Map<string, Account>) {
 		let wallet_1 = accounts.get('wallet_1')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let assetsBefore = chain.getAssetsMaps();
 		assertEquals("STX" in assetsBefore.assets, true);
-		assertEquals(".wstx.wstx" in assetsBefore.assets, false);
+		assertEquals(".istx.istx" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
 			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
@@ -204,12 +204,10 @@ Clarinet.test({
 				types.principal(wallet_1.address),
 				types.none(),
 			], deployer.address),
-			Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
         ]);
-		assertEquals(block.receipts.length, 3);
+		assertEquals(block.receipts.length, 2);
 		block.receipts[0].result.expectOk();
 		block.receipts[1].result.expectOk();
-		block.receipts[2].result.expectOk();
 		assertEquals(block.receipts[1].events.length, 1);
 		block.receipts[1].events.expectSTXTransferEvent(
 			1000,
@@ -217,7 +215,7 @@ Clarinet.test({
 			wallet_1.address,
 		);
 		let assetsAfter = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfter.assets, false);
+		assertEquals(".istx.istx" in assetsAfter.assets, false);
 		assertEquals(assetsAfter.assets[`STX`][wallet_1.address], 100000000001000);
 		let balanceSender = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
 		balanceSender.result.expectOk().expectUint(100000000001000);
@@ -231,23 +229,18 @@ Clarinet.test({
 				types.principal(wallet_1.address), 
 				types.principal(deployer.address),
 				types.none(),
-			], wallet_1.address),
+			], deployer.address),
         ]);
 		assertEquals(blockTransfer.receipts.length, 1);
-		blockTransfer.receipts[0].result.expectOk();
-		blockTransfer.receipts[0].events.expectSTXTransferEvent(
-			1000,
-			wallet_1.address,
-			deployer.address,
-		);
+		blockTransfer.receipts[0].result.expectErr().expectUint(100);
 		let assetsAfterTransfer = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfterTransfer.assets, false);
-		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000000000);
-		assertEquals(assetsAfterTransfer.assets[`STX`][deployer.address], 100000000000000);
+		assertEquals(".istx.istx" in assetsAfterTransfer.assets, false);
+		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000001000);
+		assertEquals(assetsAfterTransfer.assets[`STX`][deployer.address], 99999999999000);
 		let balanceOfW1 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
-		balanceOfW1.result.expectOk().expectUint(100000000000000);
+		balanceOfW1.result.expectOk().expectUint(100000000001000);
 		let balanceOfW2 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(deployer.address)], deployer.address);
-		balanceOfW2.result.expectOk().expectUint(100000000000000);
+		balanceOfW2.result.expectOk().expectUint(99999999999000);
     },
 });	
 
@@ -257,10 +250,10 @@ Clarinet.test({
 		let wallet_1 = accounts.get('wallet_1')!;
 		let wallet_2 = accounts.get('wallet_2')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let assetsBefore = chain.getAssetsMaps();
 		assertEquals("STX" in assetsBefore.assets, true);
-		assertEquals(".wstx.wstx" in assetsBefore.assets, false);
+		assertEquals(".istx.istx" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
 			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
@@ -279,7 +272,7 @@ Clarinet.test({
 		assertEquals(blockTransfer.receipts.length, 1);
 		blockTransfer.receipts[0].result.expectErr();
 		let assetsAfterTransfer = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfterTransfer.assets, false);
+		assertEquals(".istx.istx" in assetsAfterTransfer.assets, false);
 		assertEquals(wallet_1.address in assetsAfterTransfer.assets[`STX`], true);
 		assertEquals(wallet_2.address in assetsAfterTransfer.assets[`STX`], true);
 		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000000000);
@@ -292,14 +285,14 @@ Clarinet.test({
 });
 
 Clarinet.test({
-	name: "(transfer) negative, wstx must be approved",
+	name: "(transfer) negative, istx must be approved",
 	async fn(chain: Chain, accounts: Map<string, Account>) {
 		let wallet_1 = accounts.get('wallet_1')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let assetsBefore = chain.getAssetsMaps();
 		assertEquals("STX" in assetsBefore.assets, true);
-		assertEquals(".wstx.wstx" in assetsBefore.assets, false);
+		assertEquals(".istx.istx" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
 			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
@@ -320,7 +313,7 @@ Clarinet.test({
 			wallet_1.address,
 		);
 		let assetsAfter = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfter.assets, false);
+		assertEquals(".istx.istx" in assetsAfter.assets, false);
 		assertEquals(assetsAfter.assets[`STX`][wallet_1.address], 100000000001000);
 		let balanceSender = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
 		balanceSender.result.expectOk().expectUint(100000000001000);
@@ -340,7 +333,7 @@ Clarinet.test({
         assertEquals(blockTransfer.receipts[0].result.expectErr(), ERR_NOT_AUTHORIZED);
 
 		let assetsAfterTransfer = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfterTransfer.assets, false);
+		assertEquals(".istx.istx" in assetsAfterTransfer.assets, false);
 		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000001000);
 		assertEquals(assetsAfterTransfer.assets[`STX`][deployer.address], 99999999999000);
 
@@ -357,10 +350,10 @@ Clarinet.test({
 	async fn(chain: Chain, accounts: Map<string, Account>) {
 		let wallet_1 = accounts.get('wallet_1')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let assetsBefore = chain.getAssetsMaps();
 		assertEquals("STX" in assetsBefore.assets, true);
-		assertEquals(".wstx.wstx" in assetsBefore.assets, false);
+		assertEquals(".istx.istx" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
 			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
@@ -370,12 +363,11 @@ Clarinet.test({
 				types.principal(wallet_1.address),
 				types.none(),
 			], deployer.address),
-			Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
         ]);
-		assertEquals(block.receipts.length, 3);
+		assertEquals(block.receipts.length, 2);
 		block.receipts[0].result.expectOk();
 		block.receipts[1].result.expectOk();
-		block.receipts[2].result.expectOk();
+		
 		assertEquals(block.receipts[1].events.length, 1);
 		block.receipts[1].events.expectSTXTransferEvent(
 			1000,
@@ -383,7 +375,7 @@ Clarinet.test({
 			wallet_1.address,
 		);
 		let assetsAfter = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfter.assets, false);
+		assertEquals(".istx.istx" in assetsAfter.assets, false);
 		assertEquals(assetsAfter.assets[`STX`][wallet_1.address], 100000000001000);
 
 		let balanceSender = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
@@ -402,24 +394,18 @@ Clarinet.test({
 			], wallet_1.address),
         ]);
 		assertEquals(blockTransfer_1.receipts.length, 1);
-		blockTransfer_1.receipts[0].result.expectOk();
-		blockTransfer_1.receipts[0].events.expectSTXTransferEvent(
-			1000,
-			wallet_1.address,
-			deployer.address,
-		);
+		blockTransfer_1.receipts[0].result.expectErr().expectUint(100);
 		let assetsAfterTransfer = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfterTransfer.assets, false);
-		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000000000);
-		assertEquals(assetsAfterTransfer.assets[`STX`][deployer.address], 100000000000000);
+		assertEquals(".istx.istx" in assetsAfterTransfer.assets, false);
+		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000001000);
+		assertEquals(assetsAfterTransfer.assets[`STX`][deployer.address], 99999999999000);
 
 		let balanceOfW1_1 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
-		balanceOfW1_1.result.expectOk().expectUint(100000000000000);
+		balanceOfW1_1.result.expectOk().expectUint(100000000001000);
 		let balanceOfW2_1 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(deployer.address)], deployer.address);
-		balanceOfW2_1.result.expectOk().expectUint(100000000000000);
+		balanceOfW2_1.result.expectOk().expectUint(99999999999000);
 
 		let blockTransfer_2 = chain.mineBlock([
-			Tx.contractCall('wstx', 'disapprove-contract', [types.principal(wallet_1.address)], deployer.address),
 			Tx.contractCall(token_address, 'transfer', [
 				types.uint(1000),
 				types.principal(wallet_1.address),
@@ -428,17 +414,16 @@ Clarinet.test({
 			], wallet_1.address),
         ]);
 
-		blockTransfer_2.receipts[0].result.expectOk();
-        assertEquals(blockTransfer_2.receipts[1].result.expectErr(), ERR_NOT_AUTHORIZED);
+        assertEquals(blockTransfer_2.receipts[0].result.expectErr(), ERR_NOT_AUTHORIZED);
 
 		let assetsAfterDisapprove = chain.getAssetsMaps();
-		assertEquals(assetsAfterDisapprove.assets[`STX`][wallet_1.address], 100000000000000);
-		assertEquals(assetsAfterDisapprove.assets[`STX`][deployer.address], 100000000000000);
+		assertEquals(assetsAfterDisapprove.assets[`STX`][wallet_1.address], 100000000001000);
+		assertEquals(assetsAfterDisapprove.assets[`STX`][deployer.address], 99999999999000);
 
 		let balanceOfW1_2 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
-		balanceOfW1_2.result.expectOk().expectUint(100000000000000);
+		balanceOfW1_2.result.expectOk().expectUint(100000000001000);
 		let balanceOfW2_2 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(deployer.address)], deployer.address);
-		balanceOfW2_2.result.expectOk().expectUint(100000000000000);
+		balanceOfW2_2.result.expectOk().expectUint(99999999999000);
     },
 });
 
@@ -448,11 +433,11 @@ Clarinet.test({
 	async fn(chain: Chain, accounts: Map<string, Account>) {
 		let wallet_1 = accounts.get('wallet_1')!;
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
 		let assetsBefore = chain.getAssetsMaps();
 
 		assertEquals("STX" in assetsBefore.assets, true);
-		assertEquals(".wstx.wstx" in assetsBefore.assets, false);
+		assertEquals(".istx.istx" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
 			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
@@ -462,12 +447,11 @@ Clarinet.test({
 				types.principal(wallet_1.address),
 				types.none(),
 			], deployer.address),
-			Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
         ]);
-		assertEquals(block.receipts.length, 3);
+		assertEquals(block.receipts.length, 2);
 		block.receipts[0].result.expectOk();
 		block.receipts[1].result.expectOk();
-		block.receipts[2].result.expectOk();
+
 		assertEquals(block.receipts[1].events.length, 1);
 		block.receipts[1].events.expectSTXTransferEvent(
 			1000,
@@ -475,7 +459,7 @@ Clarinet.test({
 			wallet_1.address,
 		);
 		let assetsAfter = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfter.assets, false);
+		assertEquals(".istx.istx" in assetsAfter.assets, false);
 		assertEquals(assetsAfter.assets[`STX`][wallet_1.address], 100000000001000);
 		let balanceSender = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
 		balanceSender.result.expectOk().expectUint(100000000001000);
@@ -494,20 +478,13 @@ Clarinet.test({
         ]);
 
 		assertEquals(blockTransfer.receipts.length, 1);
-		blockTransfer.receipts[0].result.expectOk();
-		assertEquals(blockTransfer.receipts[0].events[0]['stx_transfer_event']['memo'], memo.toString('hex'));
-		blockTransfer.receipts[0].events.expectSTXTransferEvent(
-			1000,
-			wallet_1.address,
-			deployer.address,
-		);
+		blockTransfer.receipts[0].result.expectErr().expectUint(100);
 		let assetsAfterTransfer = chain.getAssetsMaps();
-		assertEquals(".wstx.wstx" in assetsAfterTransfer.assets, false);
-		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000000000);
-		assertEquals(assetsAfterTransfer.assets[`STX`][deployer.address], 100000000000000);
+		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000001000);
+		assertEquals(assetsAfterTransfer.assets[`STX`][deployer.address], 99999999999000);
 		let balanceOfW1 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
-		balanceOfW1.result.expectOk().expectUint(100000000000000);
+		balanceOfW1.result.expectOk().expectUint(100000000001000);
 		let balanceOfW2 = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(deployer.address)], deployer.address);
-		balanceOfW2.result.expectOk().expectUint(100000000000000);
+		balanceOfW2.result.expectOk().expectUint(99999999999000);
     },
 });

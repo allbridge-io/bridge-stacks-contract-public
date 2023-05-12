@@ -29,7 +29,7 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
 
         let params = [
@@ -69,7 +69,7 @@ Clarinet.test({
         let fee_number = 1000;
         //1 wTOKEN = 1_000_000_000_000_000_000 uwTOKEN
         let block = chain.mineBlock([
-            Tx.contractCall('native-token', 'transfer', ['u10000000000000000000', types.principal(deployer.address), types.principal(wallet_2.address), types.none()], deployer.address),
+            Tx.contractCall('native-token', 'mint', [types.principal(wallet_2.address), 'u10000000000000000000', types.none()], deployer.address),
             //Tx.contractCall('native-token', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
         ]);
         let params = [
@@ -80,7 +80,7 @@ Clarinet.test({
             LOCK_DESTINATION,
         ];
 
-        // 0: Mint wrapped token
+        // 0: Mint native token
         block.receipts[0].result.expectOk().expectBool(true);
         // 1: change owner
         //block.receipts[1].result.expectOk().expectBool(true);
@@ -156,7 +156,7 @@ Clarinet.test({
         let min_fee = types.uint(fee_number);
         //1 wTOKEN = 1_000_000_000_000 uwTOKEN
         let block = chain.mineBlock([
-            Tx.contractCall('native-token', 'transfer', ['u10000000000000', types.principal(deployer.address), types.principal(wallet_2.address), types.none()], deployer.address),
+            Tx.contractCall('native-token', 'mint', [types.principal(wallet_2.address), 'u10000000000000', types.none()], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
         ]);
@@ -193,11 +193,17 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
@@ -234,15 +240,14 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
         let sender = accounts.get('wallet_2')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -253,14 +258,12 @@ Clarinet.test({
             LOCK_RECIPIENT,
             LOCK_DESTINATION,
         ];
-        // 0: Approve bridge contract
-        block.receipts[0].result.expectOk().expectBool(true);
         // 1: Approve fee collector contract
-        block.receipts[1].result.expectOk().expectBool(true);
+        block.receipts[0].result.expectOk().expectBool(true);
         // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
+        block.receipts[1].result.expectOk().expectBool(true);
         // 3: Fee Collector set
-        block.receipts[3].result.expectOk().expectBool(true);
+        block.receipts[2].result.expectOk().expectBool(true);
 
         let block_1 = chain.mineBlock([
             Tx.contractCall('bridge', 'lock', params, sender.address)
@@ -313,11 +316,17 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+        
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
@@ -358,12 +367,18 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
         const wrong_lock_id = '0x07000000000000000000000000000000';
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
@@ -402,18 +417,28 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`;
+        let wallet_1 = accounts.get('wallet_1')!;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
+            Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
         ]);
 
-        // 0: Token added
+        // 0: Fee collector set
         block.receipts[0].result.expectOk().expectBool(true);
+        // 1: Token added
+        block.receipts[1].result.expectOk().expectBool(true);
 
         const sameChain = '0x53544B53';
         let params = [
@@ -448,15 +473,19 @@ Clarinet.test({
 
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -468,14 +497,10 @@ Clarinet.test({
             LOCK_DESTINATION,
         ];
 
-        // 0: Approve contract
+        // 0: Token added
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Approve fee collector
+        // 1: Fee collector set
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Fee collector set
-        block.receipts[3].result.expectOk().expectBool(true);
 
         let sender = accounts.get('wallet_2')!;
         let block_1 = chain.mineBlock([
@@ -502,15 +527,19 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -522,14 +551,10 @@ Clarinet.test({
             LOCK_DESTINATION,
         ];
 
-        // 0: Approve contract
+        // 0: Token added
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Approve fee collector
+        // 1: Fee collector set
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Fee collector set
-        block.receipts[3].result.expectOk().expectBool(true);
 
         let sender = accounts.get('wallet_2')!;
         let block_1 = chain.mineBlock([
@@ -557,15 +582,19 @@ Clarinet.test({
 
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -577,14 +606,10 @@ Clarinet.test({
             LOCK_DESTINATION,
         ];
 
-        // 0: Approve contract
+        // 0: Token added
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Approve fee collector
+        // 1: Fee collector set
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Fee collector set
-        block.receipts[3].result.expectOk().expectBool(true);
 
         let sender = accounts.get('wallet_2')!;
         let block_1 = chain.mineBlock([
@@ -612,15 +637,19 @@ Clarinet.test({
 
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -632,14 +661,10 @@ Clarinet.test({
             LOCK_DESTINATION,
         ];
 
-        // 0: Approve contract
+        // 0: Token added
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Approve fee collector
+        // 1: Fee collector set
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Fee collector set
-        block.receipts[3].result.expectOk().expectBool(true);
 
         let sender = accounts.get('wallet_2')!;
         let block_1 = chain.mineBlock([
@@ -667,15 +692,19 @@ Clarinet.test({
 
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -687,14 +716,10 @@ Clarinet.test({
             '0x1122334465',     // long destination chain ID
         ];
 
-        // 0: Approve contract
+        // 0: Token added
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Approve fee collector
+        // 1: Fee collector set
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Fee collector set
-        block.receipts[3].result.expectOk().expectBool(true);
 
         let sender = accounts.get('wallet_2')!;
         let block_1 = chain.mineBlock([
@@ -721,15 +746,19 @@ Clarinet.test({
 
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -741,14 +770,10 @@ Clarinet.test({
             '0x112233',     // short destination chain ID
         ];
 
-        // 0: Approve contract
+        // 0: Token added
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Approve fee collector
+        // 1: Fee collector set
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Fee collector set
-        block.receipts[3].result.expectOk().expectBool(true);
 
         let sender = accounts.get('wallet_2')!;
         let block_1 = chain.mineBlock([

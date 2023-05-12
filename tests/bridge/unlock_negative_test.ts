@@ -39,17 +39,22 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.transferSTX(10_000_000_000_000, `${deployer.address}.bridge`, deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
         ]);
         // 0: Set validator public key
         block.receipts[0].result.expectOk().expectBool(true);
@@ -57,8 +62,6 @@ Clarinet.test({
         block.receipts[1].result.expectOk().expectBool(true);
         // 2: Transfer STX
         block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Approve bridge contract
-        block.receipts[3].result.expectOk().expectBool(true);
 
         const recipient = '0x99e2ec69ac5b6e67b4e26edd0e2c1c1a6b9bbd23' //  ::encode 'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG
         const uintLockAmount = "0x01000000000000000000005af3107a4000"
@@ -77,7 +80,7 @@ Clarinet.test({
         
         let unlock_params = [
             LOCK_ID,
-            recipient,
+            types.principal(wallet_2.address),
             'u100000000000000', //100 Grands in system precision
             LOCK_SOURCE,
             token_principal,
@@ -113,7 +116,7 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
@@ -124,6 +127,12 @@ Clarinet.test({
 
         const anotherBuffer = new Buffer(anotherAccount.privateKey.slice(2), "hex");
         assertNotEquals(privateBuff, anotherBuffer);
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
@@ -158,7 +167,7 @@ Clarinet.test({
         signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
         let unlock_params = [
             LOCK_ID,
-            recipient,
+            types.principal(wallet_2.address),
             'u100000000000000', //100 Grands in system precision
             LOCK_SOURCE,
             token_principal,
@@ -178,13 +187,20 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
+        let wallet_1 = accounts.get('wallet_1')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
@@ -215,7 +231,7 @@ Clarinet.test({
         const recipient_2 = '0x99e2ec69ac5b6e67b4e26edd0e2c1c1a6b9bbd23' //  ::encode 'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG
         let unlock_params = [
             LOCK_ID,
-            recipient_2,
+            types.principal(wallet_2.address),
             'u100000000000000', //100 Grands in system precision
             LOCK_SOURCE,
             token_principal,
@@ -238,11 +254,17 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
@@ -272,7 +294,7 @@ Clarinet.test({
         
         let unlock_params = [
             LOCK_ID,
-            recipient,
+            types.principal(wallet_2.address),
             'u10000000000000000', //10 000 Grands in system precision
             LOCK_SOURCE,
             token_principal,
@@ -295,11 +317,17 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
@@ -331,7 +359,7 @@ Clarinet.test({
         
         let unlock_params = [
             LOCK_ID,
-            recipient,
+            types.principal(wallet_2.address),
             'u100000000000000', //100 Grands in system precision
             LOCK_SOURCE,
             token_principal,
@@ -358,13 +386,19 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
         const wrong_lock_id = '0x07000000000000000000000000000000';
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
@@ -394,7 +428,7 @@ Clarinet.test({
         signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
         let unlock_params = [
             wrong_lock_id,
-            recipient,
+            types.principal(wallet_2.address),
             'u100000000000000', //100 Grands in system precision
             LOCK_SOURCE,
             token_principal,
@@ -418,11 +452,17 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
@@ -454,7 +494,7 @@ Clarinet.test({
         signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
         let unlock_params = [
             LOCK_ID,
-            recipient,
+            types.principal(wallet_2.address),
             'u100000000000000', //100 Grands in system precision
             sameChain,
             token_principal,
@@ -478,17 +518,22 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
+
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.transferSTX(10_000_000_000_000, `${deployer.address}.bridge`, deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
         ]);
         // 0: Set validator public key
         block.receipts[0].result.expectOk().expectBool(true);
@@ -496,8 +541,6 @@ Clarinet.test({
         block.receipts[1].result.expectOk().expectBool(true);
         // 2: Transfer STX
         block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Approve contract
-        block.receipts[3].result.expectOk().expectBool(true);
 
         const recipient = '0x99e2ec69ac5b6e67b4e26edd0e2c1c1a6b9bbd' //  recipient address length 31 bytes
         const uintLockAmount = "0x01000000000000000000005af3107a4000" // ::encode u100000000000000
@@ -515,10 +558,10 @@ Clarinet.test({
         //signedBuff[signedBuff.length-1] -= 27 // recovery value
         signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
         let unlock_params = [
-            LOCK_ID,
-            recipient,
-            'u100000000000000', //100 Grands in system precision
-            LOCK_SOURCE,
+            types.buff(Buffer.from(LOCK_ID.replace('0x', ''), "hex")),
+            types.principal('SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE'),
+            types.uint(100000000000000), //100 Grands in system precision
+            types.buff(Buffer.from(LOCK_SOURCE.replace('0x', ''), "hex")),
             token_principal,
             types.buff(signedBuff),
         ];
@@ -535,85 +578,28 @@ Clarinet.test({
 
 
 Clarinet.test({
-    name: "(unlock-base) negative, long recipient address, base token (STX)",
-    async fn(chain: Chain, accounts: Map<string, Account>) {
-
-        let deployer = accounts.get('deployer')!;
-        let wallet_2 = accounts.get('wallet_2')!;
-
-        let token_address = `${deployer.address}.wstx`;
-        let token_principal = types.principal(token_address);
-        let token_type = types.uint(100);
-        let fee_number = 1000;
-        let min_fee = types.uint(fee_number);
-
-        let block = chain.mineBlock([
-            Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
-            Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
-            Tx.transferSTX(10_000_000_000_000, `${deployer.address}.bridge`, deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-        ]);
-        // 0: Set validator public key
-        block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Token added
-        block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Transfer STX
-        block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Approve contract
-        block.receipts[3].result.expectOk().expectBool(true);
-
-        const recipient = '0x99e2ec69ac5b6e67b4e26edd0e2c1c1a6b9bbd2355' //  recipient address length 33 bytes
-        const uintLockAmount = "0x01000000000000000000005af3107a4000" // ::encode u100000000000000
-        const message = Buffer.concat([
-            Buffer.from(LOCK_ID.replace('0x', ''), "hex"),
-            Buffer.from(recipient.replace('0x', ''), "hex"),
-            Buffer.from(uintLockAmount.replace('0x', ''), "hex"),
-            Buffer.from(LOCK_SOURCE.replace('0x', ''), "hex"),
-            Buffer.from(TOKEN_SOURCE.replace('0x', ''), "hex"),
-            Buffer.from(UNLOCK.replace('0x', ''), "hex")
-        ]);
-
-        const signed = EthAccount.sign(Hash.keccak256(message), bridge.privateKey.toString('hex'));
-        let signedBuff = Buffer.from(signed.replace('0x', ''), 'hex');
-        //signedBuff[signedBuff.length-1] -= 27 // recovery value
-        signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
-        let unlock_params = [
-            LOCK_ID,
-            recipient,
-            'u100000000000000', //100 Grands in system precision
-            LOCK_SOURCE,
-            token_principal,
-            types.buff(signedBuff),
-        ];
-
-        let blockUnlock = chain.mineBlock([
-            Tx.contractCall('bridge', 'unlock', unlock_params, wallet_2.address),
-        ]);
-        assertEquals(blockUnlock.receipts, []);
-
-        let assetsAfter = chain.getAssetsMaps();
-        assertEquals(assetsAfter['assets']["STX"][wallet_2.address], (100000000000000));
-    },
-});
-
-Clarinet.test({
     name: "(unlock-base) negative, short source chain id, base token (STX)",
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+        
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.transferSTX(10_000_000_000_000, `${deployer.address}.bridge`, deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
         ]);
         // 0: Set validator public key
         block.receipts[0].result.expectOk().expectBool(true);
@@ -621,8 +607,6 @@ Clarinet.test({
         block.receipts[1].result.expectOk().expectBool(true);
         // 2: Transfer STX
         block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Approve contract
-        block.receipts[3].result.expectOk().expectBool(true);
 
         const recipient = '0x99e2ec69ac5b6e67b4e26edd0e2c1c1a6b9bbd23' //  ::encode 'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG
         const uintLockAmount = "0x01000000000000000000005af3107a4000" // ::encode u100000000000000
@@ -642,7 +626,7 @@ Clarinet.test({
         signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
         let unlock_params = [
             LOCK_ID,
-            recipient,
+            types.principal('ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG'),
             'u100000000000000', //100 Grands in system precision
             wrong_source_id,
             token_principal,
@@ -667,17 +651,22 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
         let wallet_2 = accounts.get('wallet_2')!;
 
-        let token_address = `${deployer.address}.wstx`;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
+        
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'set-validator-public-key', [publicKey], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.transferSTX(10_000_000_000_000, `${deployer.address}.bridge`, deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
         ]);
         // 0: Set validator public key
         block.receipts[0].result.expectOk().expectBool(true);
@@ -685,8 +674,6 @@ Clarinet.test({
         block.receipts[1].result.expectOk().expectBool(true);
         // 2: Transfer STX
         block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Approve contract
-        block.receipts[3].result.expectOk().expectBool(true);
 
         const recipient = '0x99e2ec69ac5b6e67b4e26edd0e2c1c1a6b9bbd23' //  ::encode 'ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG
         const uintLockAmount = "0x01000000000000000000005af3107a4000" // ::encode u100000000000000
@@ -706,7 +693,7 @@ Clarinet.test({
         signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
         let unlock_params = [
             LOCK_ID,
-            recipient,
+            types.principal('ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG'),
             'u100000000000000', //100 Grands in system precision
             wrong_source_id,
             token_principal,

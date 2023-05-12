@@ -63,12 +63,18 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let token_address = `${deployer.address}.wstx`
+        let token_address = `${deployer.address}.istx`
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let token_precision = types.uint(6);
         let min_fee = types.uint(100000);
         let min_fee_changed = types.uint(200000);
+        
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'add-token ', [

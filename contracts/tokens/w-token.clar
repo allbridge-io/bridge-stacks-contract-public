@@ -7,6 +7,8 @@
 (define-map approved-contracts principal bool)
 
 (define-data-var token-uri (string-utf8 256) u"")
+(define-data-var name (string-ascii 32) "Wrapped Token")
+(define-data-var symbol (string-ascii 32) "wTOKEN")
 (define-data-var contract-owner principal tx-sender)
 
 (define-read-only 
@@ -32,12 +34,12 @@
 
 (define-read-only 
 	(get-name)
-  	(ok "Wrapped Token")
+  	(ok (var-get name))
 )
 
 (define-read-only 
 	(get-symbol)
-  (	ok "wTOKEN")
+  	(ok (var-get symbol))
 )
 
 (define-read-only 
@@ -60,6 +62,28 @@
 		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
 		(asserts! (is-eq (> (len value) u0) true) ERR-NOT-AUTHORIZED)
 		(ok (var-set token-uri value))
+	)
+)
+
+(define-public 
+	(set-token-name 
+		(value (string-ascii 32))
+	)
+	(begin
+		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
+		(asserts! (is-eq (> (len value) u0) true) ERR-NOT-AUTHORIZED)
+		(ok (var-set name value))
+	)
+)
+
+(define-public 
+	(set-token-symbol 
+		(value (string-ascii 32))
+	)
+	(begin
+		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
+		(asserts! (is-eq (> (len value) u0) true) ERR-NOT-AUTHORIZED)
+		(ok (var-set symbol value))
 	)
 )
 
@@ -155,3 +179,8 @@
 		)
 	)
 )
+
+;; (mint! tx-sender u100000000000000 none)
+;; (mint! 'ST1B5RJP7JKCSBZ8D1YN6XT6SSZYDSM6RXXWQHNA3 u100000000000000 none)
+;; (mint! 'ST1365SNAKBPCB9AW7CQXWVCBKEE7RS2DG9V591VG u10000000000000 none)
+;; (mint! 'ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ.bridge u100000000000000000 none)

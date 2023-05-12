@@ -18,7 +18,7 @@ Clarinet.test({
 
         let wallet_1 = accounts.get('wallet_1')!;
         let deployer = accounts.get('deployer')!;
-        let tokenAddress = `${deployer.address}.wstx`;
+        let tokenAddress = `${deployer.address}.istx`;
         let tokenPrincipal = types.principal(tokenAddress);
 
         let block = chain.mineBlock([
@@ -33,7 +33,7 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let tokenAddress = `${deployer.address}.wstx`;
+        let tokenAddress = `${deployer.address}.istx`;
         let tokenPrincipal = types.principal(tokenAddress);
 
         let block = chain.mineBlock([
@@ -48,7 +48,7 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let tokenAddress = `${deployer.address}.wstx`;
+        let tokenAddress = `${deployer.address}.istx`;
         let tokenPrincipal = types.principal(tokenAddress);
 
         let block = chain.mineBlock([
@@ -63,9 +63,15 @@ Clarinet.test({
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
-        let tokenAddress = `${deployer.address}.wstx`;
+        let tokenAddress = `${deployer.address}.istx`;
         let tokenPrincipal = types.principal(tokenAddress);
         let minFee = types.uint(100000);
+        
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, tokenPrincipal, 'u100', minFee], deployer.address),
@@ -152,11 +158,16 @@ Clarinet.test({
         let wallet_1 = accounts.get('wallet_1')!;
 
         let wallet_9 = accounts.get('wallet_9')!;
-        let tokenAddress = `${deployer.address}.wstx`;
+        let tokenAddress = `${deployer.address}.istx`;
         let tokenPrincipal = types.principal(tokenAddress);
         let tokenType = types.uint(100);
         let minFee = types.uint(100000);
-
+        
+        let setOwnerBlock = chain.mineBlock([
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+        ]);
+        // 0: Transfer Ownership to bridge
+        assertEquals(setOwnerBlock.receipts[0].result.expectOk(), 'true');
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, tokenPrincipal, tokenType, minFee], deployer.address),
@@ -191,7 +202,7 @@ Clarinet.test({
         let deployer = accounts.get('deployer')!;
 
         let wallet_9 = accounts.get('wallet_9')!;
-        let tokenAddress = `${deployer.address}.wstx`;
+        let tokenAddress = `${deployer.address}.istx`;
         let tokenPrincipal = types.principal(tokenAddress);
         
         let block1 = chain.mineBlock([
@@ -229,10 +240,9 @@ Clarinet.test({
 
         let block = chain.mineBlock([
             Tx.contractCall('bridge', 'add-token', [TOKEN_SOURCE, tokenPrincipal, tokenType, minFee], deployer.address),
-            Tx.contractCall('native-token', 'transfer', [
+            Tx.contractCall('native-token', 'mint', [
+                types.principal(`${deployer.address}.bridge`),
 				types.uint(10000000000), 
-				types.principal(deployer.address), 
-				types.principal(`${deployer.address}.bridge`),
 				types.none(),
 			], deployer.address),
             Tx.contractCall(`${deployer.address}.native-token`, 'set-contract-owner', [types.principal(wallet_3.address)], deployer.address),

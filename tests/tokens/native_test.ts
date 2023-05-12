@@ -157,20 +157,17 @@ Clarinet.test({
 		assertEquals(".native-token.native-token" in assetsBefore.assets, false);
 
 		let block = chain.mineBlock([
-			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
-            Tx.contractCall(token_address, 'transfer', [
-				types.uint(1000), 
-				types.principal(deployer.address), 
+            Tx.contractCall(token_address, 'mint', [
 				types.principal(wallet_1.address),
+				types.uint(1000), 				
 				types.none(),
 			], deployer.address),
         ]);
 		
-		assertEquals(block.receipts.length, 2);
+		assertEquals(block.receipts.length, 1);
 		block.receipts[0].result.expectOk();
-		block.receipts[1].result.expectOk();
-		assertEquals(block.receipts[1].events.length, 3);
-		block.receipts[1].events.expectFungibleTokenMintEvent(
+		assertEquals(block.receipts[0].events.length, 3);
+		block.receipts[0].events.expectFungibleTokenMintEvent(
 			1000,
 			wallet_1.address,
 			`${deployer.address}.native-token::native-token`
@@ -227,19 +224,16 @@ Clarinet.test({
 		assertEquals(".native-token.native-token" in assetsBefore.assets, false);
 
 		let blockMint = chain.mineBlock([
-			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
-            Tx.contractCall(token_address, 'transfer', [
-				types.uint(1000), 
-				types.principal(deployer.address), 
+            Tx.contractCall(token_address, 'mint', [
 				types.principal(wallet_1.address),
+				types.uint(1000), 
 				types.none(),
 			], deployer.address),
         ]);
-		assertEquals(blockMint.receipts.length, 2);
+		assertEquals(blockMint.receipts.length, 1);
 		blockMint.receipts[0].result.expectOk();
-		blockMint.receipts[1].result.expectOk();
-		assertEquals(blockMint.receipts[1].events.length, 3);
-		blockMint.receipts[1].events.expectFungibleTokenMintEvent(
+		assertEquals(blockMint.receipts[0].events.length, 3);
+		blockMint.receipts[0].events.expectFungibleTokenMintEvent(
 			1000,
 			wallet_1.address,
 			`${deployer.address}.native-token::native-token`
@@ -250,10 +244,9 @@ Clarinet.test({
 		assertEquals(assetsAfterMint.assets[`.native-token.native-token`][wallet_1.address], 1000);
 		
 		let blockBurn = chain.mineBlock([
-			Tx.contractCall(token_address, 'transfer', [
+			Tx.contractCall(token_address, 'burn', [
+				types.principal(wallet_1.address), 
 				types.uint(500), 
-				types.principal(wallet_1.address),
-				types.principal(deployer.address), 
 				types.none(),
 			], deployer.address),
         ]);
@@ -277,7 +270,7 @@ Clarinet.test({
 
 
 Clarinet.test({
-    name: "(burn) negative - only owner can burn",
+    name: "(burn) negative - only owner can burn, native token",
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let wallet_1 = accounts.get('wallet_1')!;
@@ -288,19 +281,16 @@ Clarinet.test({
 		assertEquals(".native-token.native-token" in assetsBefore.assets, false);
 
 		let blockMint = chain.mineBlock([
-			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
-            Tx.contractCall(token_address, 'transfer', [
-				types.uint(1000), 
-				types.principal(deployer.address), 
+            Tx.contractCall(token_address, 'mint', [
 				types.principal(wallet_1.address),
+				types.uint(1000), 
 				types.none(),
 			], deployer.address),
         ]);
-		assertEquals(blockMint.receipts.length, 2);
+		assertEquals(blockMint.receipts.length, 1);
 		blockMint.receipts[0].result.expectOk();
-		blockMint.receipts[1].result.expectOk();
-		assertEquals(blockMint.receipts[1].events.length, 3);
-		blockMint.receipts[1].events.expectFungibleTokenMintEvent(
+		assertEquals(blockMint.receipts[0].events.length, 3);
+		blockMint.receipts[0].events.expectFungibleTokenMintEvent(
 			1000,
 			wallet_1.address,
 			`${deployer.address}.native-token::native-token`
@@ -310,7 +300,7 @@ Clarinet.test({
 		assertEquals(wallet_1.address in assetsAfterMint.assets[`.native-token.native-token`], true);
 		assertEquals(assetsAfterMint.assets[`.native-token.native-token`][wallet_1.address], 1000);
 		
-		let blockBurn = chain.mineBlock([
+		let blockTransfer = chain.mineBlock([
 			Tx.contractCall(token_address, 'transfer', [
 				types.uint(500), 
 				types.principal(wallet_1.address),
@@ -319,14 +309,21 @@ Clarinet.test({
 			], wallet_1.address),
         ]);
 
-		assertEquals(blockBurn.receipts.length, 1);
-		blockBurn.receipts[0].result.expectErr();
+		assertEquals(blockTransfer.receipts.length, 1);
+		blockTransfer.receipts[0].result.expectOk();
+		assertEquals(blockMint.receipts[0].events.length, 3);
+		blockMint.receipts[0].events.expectFungibleTokenMintEvent(
+			1000,
+			wallet_1.address,
+			`${deployer.address}.native-token::native-token`
+		);
 		let assetsAfterBurn = chain.getAssetsMaps();
 		assertEquals(".native-token.native-token" in assetsAfterBurn.assets, true);
 		assertEquals(wallet_1.address in assetsAfterBurn.assets[`.native-token.native-token`], true);
-		assertEquals(assetsAfterBurn.assets[`.native-token.native-token`][wallet_1.address], 1000);
+		assertEquals(assetsAfterBurn.assets[`.native-token.native-token`][wallet_1.address], 500);
+		assertEquals(assetsAfterBurn.assets[`.native-token.native-token`][deployer.address], 500);
 		let balanceOf = chain.callReadOnlyFn(token_address, 'get-balance', [types.principal(wallet_1.address)], wallet_1.address);
-		balanceOf.result.expectOk().expectUint(1000);
+		balanceOf.result.expectOk().expectUint(500);
     },
 });
 
@@ -343,19 +340,16 @@ Clarinet.test({
 		assertEquals(".native-token.native-token" in assetsBefore.assets, false);
 
 		let blockMint = chain.mineBlock([
-			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
-            Tx.contractCall(token_address, 'transfer', [
-				types.uint(1000), 
-				types.principal(deployer.address), 
+            Tx.contractCall(token_address, 'mint', [
 				types.principal(wallet_1.address),
+				types.uint(1000), 
 				types.none(),
 			], deployer.address),
         ]);
-		assertEquals(blockMint.receipts.length, 2);
+		assertEquals(blockMint.receipts.length, 1);
 		blockMint.receipts[0].result.expectOk();
-		blockMint.receipts[1].result.expectOk();
-		assertEquals(blockMint.receipts[1].events.length, 3);
-		blockMint.receipts[1].events.expectFungibleTokenMintEvent(
+		assertEquals(blockMint.receipts[0].events.length, 3);
+		blockMint.receipts[0].events.expectFungibleTokenMintEvent(
 			1000,
 			wallet_1.address,
 			`${deployer.address}.native-token::native-token`
@@ -401,19 +395,16 @@ Clarinet.test({
 		assertEquals(".native-token.native-token" in assetsBefore.assets, false);
 
 		let blockMint = chain.mineBlock([
-			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
-            Tx.contractCall(token_address, 'transfer', [
-				types.uint(1000), 
-				types.principal(deployer.address), 
+            Tx.contractCall(token_address, 'mint', [
 				types.principal(wallet_1.address),
+				types.uint(1000), 
 				types.none(),
 			], deployer.address),
         ]);
-		assertEquals(blockMint.receipts.length, 2);
+		assertEquals(blockMint.receipts.length, 1);
 		blockMint.receipts[0].result.expectOk();
-		blockMint.receipts[1].result.expectOk();
-		assertEquals(blockMint.receipts[1].events.length, 3);
-		blockMint.receipts[1].events.expectFungibleTokenMintEvent(
+		assertEquals(blockMint.receipts[0].events.length, 3);
+		blockMint.receipts[0].events.expectFungibleTokenMintEvent(
 			1000,
 			wallet_1.address,
 			`${deployer.address}.native-token::native-token`
@@ -459,19 +450,16 @@ Clarinet.test({
 		assertEquals(".native-token.native-token" in assetsBefore.assets, false);
 
 		let blockMint = chain.mineBlock([
-			Tx.contractCall(token_address, 'set-contract-owner', [types.principal(deployer.address)], deployer.address),
-            Tx.contractCall(token_address, 'transfer', [
-				types.uint(1000), 
-				types.principal(deployer.address), 
+            Tx.contractCall(token_address, 'mint', [
 				types.principal(wallet_1.address),
+				types.uint(1000),
 				types.none(),
 			], deployer.address),
         ]);
-		assertEquals(blockMint.receipts.length, 2);
+		assertEquals(blockMint.receipts.length, 1);
 		blockMint.receipts[0].result.expectOk();
-		blockMint.receipts[1].result.expectOk();
-		assertEquals(blockMint.receipts[1].events.length, 3);
-		blockMint.receipts[1].events.expectFungibleTokenMintEvent(
+		assertEquals(blockMint.receipts[0].events.length, 3);
+		blockMint.receipts[0].events.expectFungibleTokenMintEvent(
 			1000,
 			wallet_1.address,
 			`${deployer.address}.native-token::native-token`

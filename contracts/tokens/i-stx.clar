@@ -4,7 +4,6 @@
 (define-constant ERR-WRONG-PRINCIPAL (err u101))
 (define-constant ERR-WRONG-AMOUNT (err u102))
 (define-constant PRECISION u6)
-(define-map approved-contracts principal bool)
 
 (define-data-var token-uri (string-utf8 256) u"")
 (define-data-var contract-owner principal tx-sender)
@@ -23,25 +22,7 @@
 	)
 )
 
-(define-public 
-	(approve-contract (contract principal))
-	(begin
-		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
-		(asserts! (is-standard contract) ERR-NOT-AUTHORIZED)
-		(ok (map-set approved-contracts contract true))
-	)
-)
-
-(define-public 
-	(disapprove-contract (contract principal))
-	(begin
-		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
-		(asserts! (is-standard contract) ERR-NOT-AUTHORIZED)
-		(ok (map-delete approved-contracts contract))
-	)
-)
-
-(define-fungible-token wstx)
+(define-fungible-token istx)
 
 (define-read-only (get-total-supply)
   	(ok u0)
@@ -49,12 +30,12 @@
 
 (define-read-only 
 	(get-name)
-  	(ok "Wrapped STX")
+  	(ok "Stacks")
 )
 
 (define-read-only 
 	(get-symbol)
-  (	ok "wstx")
+  (	ok "STX")
 )
 
 (define-read-only 
@@ -97,9 +78,7 @@
 		(asserts! (is-standard recipient) ERR-WRONG-PRINCIPAL)
 		(asserts! (is-eq (> amount u0) true) ERR-WRONG-AMOUNT)
 		(asserts! (and (is-eq sender tx-sender) 
-						(or (is-eq contract-caller (var-get contract-owner))
-							(is-some (map-get? approved-contracts recipient))
-							(is-some (map-get? approved-contracts sender))))
+						(is-eq contract-caller (var-get contract-owner)))
 						ERR-NOT-AUTHORIZED)
 		(if (is-none memo)
 			(stx-transfer? amount sender recipient)

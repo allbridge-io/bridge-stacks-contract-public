@@ -1,5 +1,6 @@
 import { Clarinet, Tx, Chain, Account, types } from "https://deno.land/x/clarinet@v1.5.0-rc.2/index.ts";
 import { assertEquals } from 'https://deno.land/std@0.170.0/testing/asserts.ts';
+import { Buffer } from "https://cdn.skypack.dev/buffer@5.6.0";
 
 const CHAIN_OTHER = '0x11223344';
 const TOKEN_SOURCE_ADDRESS = '0x0000000000000000000000006d78de7b0625dfbfc16c3a8a5735f6dc3dc3f2ce';
@@ -10,21 +11,23 @@ const LOCK_DESTINATION = '0x11223344';
 const LOCK_RECIPIENT = '0x1122334455667788990011223344556677889900112233445566778899001122';
 const LOCK_AMOUNT: number = 100_000_000_000; // 100 000 STX
 
+const ERR_WRONG_LOCK_ID: number = 20003;
+
 Clarinet.test({
-    name: "(lock-base) positive, base token (STX)",
+    name: "(lock) positive, base token (STX)",
     async fn(chain: Chain, accounts: Map<string, Account>) {
 
         let deployer = accounts.get('deployer')!;
         let wallet_1 = accounts.get('wallet_1')!;
-        let token_address = `${deployer.address}.wstx`;
+        let sender = accounts.get('wallet_2')!;
+        let token_address = `${deployer.address}.istx`;
         let token_principal = types.principal(token_address);
         let token_type = types.uint(100);
         let fee_number = 1000;
         let min_fee = types.uint(fee_number);
 
         let block = chain.mineBlock([
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(`${deployer.address}.bridge`)], deployer.address),
-            Tx.contractCall('wstx', 'approve-contract', [types.principal(wallet_1.address)], deployer.address),
+            Tx.contractCall('istx', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
             Tx.contractCall('bridge', 'add-token ', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
             Tx.contractCall('bridge', 'set-fee-collector', [types.principal(wallet_1.address)], deployer.address),
         ]);
@@ -36,16 +39,16 @@ Clarinet.test({
             LOCK_DESTINATION,
         ];
 
-        // 0: Approve contract
+        // 0: Set contract owner
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: Approve fee collector
+        // 1: Token added
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: Token added
+        // 2: Fee collector set
         block.receipts[2].result.expectOk().expectBool(true);
-        // 3: Fee collector set
-        block.receipts[3].result.expectOk().expectBool(true);
 
-        let sender = accounts.get('wallet_2')!;
+        let lockBefore = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        lockBefore.result.expectErr().expectUint(ERR_WRONG_LOCK_ID);
+
         let block_1 = chain.mineBlock([
             Tx.contractCall('bridge', 'lock', params, sender.address)
         ]);
@@ -70,6 +73,14 @@ Clarinet.test({
         assertEquals(assetsAfter['assets']['STX'][deployer.address], 100000000000000);
         assertEquals(assetsAfter['assets']['STX'][wallet_1.address], 100000100000000);
         assertEquals(assetsAfter['assets']['STX'][`${deployer.address}.bridge`], 99900000000);
+
+        let getLock = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        let tuple = getLock.result.expectOk().expectTuple();
+        tuple['amount'].expectUint(99900000000000);
+        tuple['recipient'].expectBuff(Buffer.from(LOCK_RECIPIENT.replace('0x', ''), 'hex'));
+        tuple['destination'].expectBuff(Buffer.from(LOCK_DESTINATION.replace('0x', ''), 'hex'));
+        tuple['token-source'].expectBuff(Buffer.from(TOKEN_SOURCE.replace('0x', ''), 'hex'));
+        tuple['sender'].expectPrincipal(sender.address);
     },
 });
 
@@ -106,6 +117,10 @@ Clarinet.test({
         block.receipts[2].result.expectOk().expectBool(true);
         let assetsBefore = chain.getAssetsMaps();
         assertEquals(assetsBefore['assets'][".wrapped-token.wrapped-token"][wallet_2.address], (10000000000000000000));
+
+        let lockBefore = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        lockBefore.result.expectErr().expectUint(ERR_WRONG_LOCK_ID);
+            
         let block_1 = chain.mineBlock([
             Tx.contractCall('bridge', 'lock', params, wallet_2.address)
         ]);
@@ -124,6 +139,14 @@ Clarinet.test({
         let assetsAfter = chain.getAssetsMaps();
         assertEquals(assetsAfter['assets'][".wrapped-token.wrapped-token"][wallet_2.address], (0));
         assertEquals(assetsAfter['assets'][".wrapped-token.wrapped-token"][deployer.address], (10000000000000000));
+
+        let getLock = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        let tuple = getLock.result.expectOk().expectTuple();
+        tuple['amount'].expectUint(99900000000000000000);
+        tuple['recipient'].expectBuff(Buffer.from(LOCK_RECIPIENT.replace('0x', ''), 'hex'));
+        tuple['destination'].expectBuff(Buffer.from(LOCK_DESTINATION.replace('0x', ''), 'hex'));
+        tuple['token-source'].expectBuff(Buffer.from(TOKEN_SOURCE.replace('0x', ''), 'hex'));
+        tuple['sender'].expectPrincipal(wallet_2.address);
     },
 });
 
@@ -140,8 +163,7 @@ Clarinet.test({
         let min_fee = types.uint(fee_number);
         //1 wTOKEN = 1_000_000_000_000_000_000 uwTOKEN
         let block = chain.mineBlock([
-            Tx.contractCall('native-token', 'transfer', ['u10000000000000000000', types.principal(deployer.address), types.principal(wallet_2.address), types.none()], deployer.address),
-            Tx.contractCall('native-token', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
+            Tx.contractCall('native-token', 'mint', [types.principal(wallet_2.address), 'u10000000000000000000', types.none()], deployer.address),
             Tx.contractCall('bridge', 'add-token', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
         ]);
         let params = [
@@ -154,12 +176,14 @@ Clarinet.test({
 
         // 0: Mint wrapped token
         block.receipts[0].result.expectOk().expectBool(true);
-        // 1: change owner
-        block.receipts[1].result.expectOk().expectBool(true);
         // 2: Token added
-        block.receipts[2].result.expectOk().expectBool(true);
+        block.receipts[1].result.expectOk().expectBool(true);
         let assetsBefore = chain.getAssetsMaps();
         assertEquals(assetsBefore['assets'][".native-token.native-token"][wallet_2.address], (10000000000000000000));
+
+        let lockBefore = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        lockBefore.result.expectErr().expectUint(ERR_WRONG_LOCK_ID);
+
         let block_1 = chain.mineBlock([
             Tx.contractCall('bridge', 'lock', params, wallet_2.address)
         ]);
@@ -170,14 +194,23 @@ Clarinet.test({
             deployer.address,
             `${deployer.address}.native-token::native-token`
         );
-        block_1.receipts[0].events.expectFungibleTokenBurnEvent(
+        block_1.receipts[0].events.expectFungibleTokenTransferEvent(
             9990000000000000000,
             wallet_2.address,
+            `${deployer.address}.bridge`,
             `${deployer.address}.native-token::native-token`
         );
         let assetsAfter = chain.getAssetsMaps();
         assertEquals(assetsAfter['assets'][".native-token.native-token"][wallet_2.address], (0));
         assertEquals(assetsAfter['assets'][".native-token.native-token"][deployer.address], (10000000000000000));
+        
+        let getLock = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        let tuple = getLock.result.expectOk().expectTuple();
+        tuple['amount'].expectUint(9990000000000000000);
+        tuple['recipient'].expectBuff(Buffer.from(LOCK_RECIPIENT.replace('0x', ''), 'hex'));
+        tuple['destination'].expectBuff(Buffer.from(LOCK_DESTINATION.replace('0x', ''), 'hex'));
+        tuple['token-source'].expectBuff(Buffer.from(TOKEN_SOURCE.replace('0x', ''), 'hex'));
+        tuple['sender'].expectPrincipal(wallet_2.address);
     },
 });
 
@@ -195,9 +228,8 @@ Clarinet.test({
         let min_fee = types.uint(fee_number);
         //1 wTOKEN = 1_000_000_000_000_000_000 uwTOKEN
         let block = chain.mineBlock([
-            Tx.contractCall('native-token', 'transfer', ['u10000000000000000000', types.principal(deployer.address), types.principal(wallet_2.address), types.none()], deployer.address),
+            Tx.contractCall('native-token', 'mint', [types.principal(wallet_2.address), 'u10000000000000000000', types.none()], deployer.address),
             Tx.contractCall('native-token', 'set-precision', ['u6'], deployer.address),
-            Tx.contractCall('native-token', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
             Tx.contractCall('bridge', 'add-token', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
         ]);
         let params = [
@@ -212,12 +244,14 @@ Clarinet.test({
         block.receipts[0].result.expectOk().expectBool(true);
         // 1: change precision
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: change owner
-        block.receipts[2].result.expectOk().expectBool(true);
         // 3: Token added
-        block.receipts[3].result.expectOk().expectBool(true);
+        block.receipts[2].result.expectOk().expectBool(true);
         let assetsBefore = chain.getAssetsMaps();
         assertEquals(assetsBefore['assets'][".native-token.native-token"][wallet_2.address], (10000000000000000000));
+
+        let lockBefore = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        lockBefore.result.expectErr().expectUint(ERR_WRONG_LOCK_ID);
+
         let block_1 = chain.mineBlock([
             Tx.contractCall('bridge', 'lock', params, wallet_2.address)
         ]);
@@ -228,14 +262,23 @@ Clarinet.test({
             deployer.address,
             `${deployer.address}.native-token::native-token`
         );
-        block_1.receipts[0].events.expectFungibleTokenBurnEvent(
+        block_1.receipts[0].events.expectFungibleTokenTransferEvent(
             9990000000000000000,
             wallet_2.address,
+            `${deployer.address}.bridge`,
             `${deployer.address}.native-token::native-token`
         );
         let assetsAfter = chain.getAssetsMaps();
         assertEquals(assetsAfter['assets'][".native-token.native-token"][wallet_2.address], (0));
         assertEquals(assetsAfter['assets'][".native-token.native-token"][deployer.address], (10000000000000000));
+
+        let getLock = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        let tuple = getLock.result.expectOk().expectTuple();
+        assertEquals(tuple['amount'], 'u9990000000000000000000');
+        tuple['recipient'].expectBuff(Buffer.from(LOCK_RECIPIENT.replace('0x', ''), 'hex'));
+        tuple['destination'].expectBuff(Buffer.from(LOCK_DESTINATION.replace('0x', ''), 'hex'));
+        tuple['token-source'].expectBuff(Buffer.from(TOKEN_SOURCE.replace('0x', ''), 'hex'));
+        tuple['sender'].expectPrincipal(wallet_2.address);
     },
 });
 
@@ -252,9 +295,8 @@ Clarinet.test({
         let min_fee = types.uint(fee_number);
         //1 wTOKEN = 1_000_000_000_000_000_000 uwTOKEN
         let block = chain.mineBlock([
-            Tx.contractCall('native-token', 'transfer', ['u10000000000000000000', types.principal(deployer.address), types.principal(wallet_2.address), types.none()], deployer.address),
+            Tx.contractCall('native-token', 'mint', [types.principal(wallet_2.address), 'u10000000000000000000', types.none()], deployer.address),
             Tx.contractCall('native-token', 'set-precision', ['u12'], deployer.address),
-            Tx.contractCall('native-token', 'set-contract-owner', [types.principal(`${deployer.address}.bridge`)], deployer.address),
             Tx.contractCall('bridge', 'add-token', [TOKEN_SOURCE, token_principal, token_type, min_fee], deployer.address),
         ]);
         let params = [
@@ -269,12 +311,14 @@ Clarinet.test({
         block.receipts[0].result.expectOk().expectBool(true);
         // 1: change precision
         block.receipts[1].result.expectOk().expectBool(true);
-        // 2: change owner
-        block.receipts[2].result.expectOk().expectBool(true);
         // 3: Token added
-        block.receipts[3].result.expectOk().expectBool(true);
+        block.receipts[2].result.expectOk().expectBool(true);
         let assetsBefore = chain.getAssetsMaps();
         assertEquals(assetsBefore['assets'][".native-token.native-token"][wallet_2.address], (10000000000000000000));
+
+        let lockBefore = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        lockBefore.result.expectErr().expectUint(ERR_WRONG_LOCK_ID);
+
         let block_1 = chain.mineBlock([
             Tx.contractCall('bridge', 'lock', params, wallet_2.address)
         ]);
@@ -285,13 +329,22 @@ Clarinet.test({
             deployer.address,
             `${deployer.address}.native-token::native-token`
         );
-        block_1.receipts[0].events.expectFungibleTokenBurnEvent(
+        block_1.receipts[0].events.expectFungibleTokenTransferEvent(
             9990000000000000000,
             wallet_2.address,
+            `${deployer.address}.bridge`,
             `${deployer.address}.native-token::native-token`
         );
         let assetsAfter = chain.getAssetsMaps();
         assertEquals(assetsAfter['assets'][".native-token.native-token"][wallet_2.address], (0));
         assertEquals(assetsAfter['assets'][".native-token.native-token"][deployer.address], (10000000000000000));
+
+        let getLock = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'get-lock', [LOCK_ID], deployer.address);
+        let tuple = getLock.result.expectOk().expectTuple();
+        tuple['amount'].expectUint(9990000000000000);
+        tuple['recipient'].expectBuff(Buffer.from(LOCK_RECIPIENT.replace('0x', ''), 'hex'));
+        tuple['destination'].expectBuff(Buffer.from(LOCK_DESTINATION.replace('0x', ''), 'hex'));
+        tuple['token-source'].expectBuff(Buffer.from(TOKEN_SOURCE.replace('0x', ''), 'hex'));
+        tuple['sender'].expectPrincipal(wallet_2.address);
     },
 });
