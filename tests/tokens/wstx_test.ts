@@ -232,7 +232,7 @@ Clarinet.test({
 			], deployer.address),
         ]);
 		assertEquals(blockTransfer.receipts.length, 1);
-		blockTransfer.receipts[0].result.expectErr().expectUint(100);
+		blockTransfer.receipts[0].result.expectErr().expectUint(4);
 		let assetsAfterTransfer = chain.getAssetsMaps();
 		assertEquals(".istx.istx" in assetsAfterTransfer.assets, false);
 		assertEquals(assetsAfterTransfer.assets[`STX`][wallet_1.address], 100000000001000);

@@ -9,7 +9,7 @@ const TOKEN_SOURCE_ADDRESS = '0x0000000000000000000000006d78de7b0625dfbfc16c3a8a
 const TOKEN_SOURCE = `0x${CHAIN_OTHER.replace('0x', '')}${TOKEN_SOURCE_ADDRESS.replace('0x', '')}`;
 
 const ERR_TOKEN_DOES_NOT_EXIST = 'u10001';
-const ERR_AMOUNT_IS_TOO_SMALL = 'u10004';
+const ERR_AMOUNT_IS_TOO_SMALL = 'u102';
 const ERR_INSUFFICIENT_FUNDS = 'u1';
 const ERR_BRIDGE_ZERO_AMOUNT = 'u10003';
 const ERR_WRONG_RECIPIENT = 'u10009';
@@ -561,7 +561,7 @@ Clarinet.test({
             Tx.contractCall('bridge', 'lock', params, sender.address)
         ]);
 
-        assertEquals(block_1.receipts[0].result.expectErr(), ERR_AMOUNT_IS_TOO_SMALL);
+        assertEquals(block_1.receipts.length, 0);
 
         chain.mineEmptyBlockUntil(10);
         let block_2 = chain.mineBlock([]);

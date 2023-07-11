@@ -51,7 +51,7 @@ plan:
              contract-name: native-token
              expected-sender: ST1101EZXXBF6090JWBZRPH4N0KSZQ0E1S793HSPQ
              cost: 33860
-             path: contracts/tokens/n-token.clar
+             path: contracts/tokens/test/n-token.clar
              anchor-block-only: true
              clarity-version: 2
         - contract-publish:

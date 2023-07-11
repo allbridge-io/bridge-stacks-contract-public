@@ -24,7 +24,7 @@ const publicKey = "0x" + ecKey.getPublic(true, "hex");
 
 const ERR_UNLOCK_EXISTS = 10008;
 const ERR_WRONG_UNLOCK_ID = 20004;
-console.log(secp256k1.keyFromPrivate(new Buffer('d1e8d1a24bf1bffacb4cfbc3db1ea9fdae528ef3214c4726465b02ebcdb2d2f4', 'hex')).getPublic(true, "hex"));
+//console.log(secp256k1.keyFromPrivate(new Buffer('d1e8d1a24bf1bffacb4cfbc3db1ea9fdae528ef3214c4726465b02ebcdb2d2f4', 'hex')).getPublic(true, "hex"));
 Clarinet.test({
     name: "(unlock) positive, base token (STX)",
     async fn(chain: Chain, accounts: Map<string, Account>) {
@@ -84,9 +84,9 @@ Clarinet.test({
         let blockUnlock = chain.mineBlock([
             Tx.contractCall('bridge', 'unlock', unlock_params, wallet_2.address),
         ]);
-        console.log(blockUnlock.receipts);
-        console.log(blockUnlock.receipts[0].events[0]);
-        console.log(blockUnlock.receipts[0].events[1]);
+        // console.log(blockUnlock.receipts);
+        // console.log(blockUnlock.receipts[0].events[0]);
+        // console.log(blockUnlock.receipts[0].events[1]);
         blockUnlock.receipts[0].result.expectOk().expectBool(true)
         blockUnlock.receipts[0].events.expectSTXTransferEvent(
             100_000_000_000,
@@ -100,7 +100,7 @@ Clarinet.test({
         let isClaimedAfter = chain.callReadOnlyFn(`${deployer.address}.bridge`, 'is-claimed', [
             types.buff(Buffer.from(`${LOCK_SOURCE.replace('0x', '')}${LOCK_ID.replace('0x', '')}`, 'hex'))
         ], deployer.address);
-        console.log(isClaimedAfter.result)
+        //console.log(isClaimedAfter.result)
         isClaimedAfter.result.expectOk().expectTuple()['value'].expectBool(true);
     },
 });
@@ -155,7 +155,7 @@ Clarinet.test({
         let signedBuff = Buffer.from(signed.replace('0x', ''), 'hex');
         //signedBuff[signedBuff.length-1] -= 27 // recovery value
         signedBuff = Buffer.concat([signedBuff.slice(0, -1), Buffer.from('01', 'hex')]); // recovery value
-        console.log(signedBuff.toString('hex'));
+        //console.log(signedBuff.toString('hex'));
         let unlock_params = [
             '0x01000000000000000000000000000000',
             types.principal('ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG'),

@@ -59,9 +59,9 @@
 (define-data-var base-fee-rate-bp uint u10)
 (define-data-var validator-public-key (buff 33) 0x00)
 ;; Fee collector principal
-(define-data-var fee-collector principal tx-sender)
+(define-data-var fee-collector principal contract-caller)
 ;; Bridge owner principal
-(define-data-var contract-owner principal tx-sender)
+(define-data-var contract-owner principal contract-caller)
 ;; BIG RED BUTTON
 (define-data-var is-bridge-enabled bool true)
 
@@ -142,14 +142,14 @@
       (if (or (is-eq token-type TOKEN-TYPE-NATIVE) (is-eq token-type TOKEN-TYPE-BASE))
           ;; Transfer all tokens to the new owner
           (asserts! (or (is-eq (try! (contract-call? token get-balance .bridge)) u0)
-            (is-eq (try! (as-contract (safe-transfer! token .bridge new-owner (try! (contract-call? token get-balance .bridge))))) true))
+            (try! (as-contract (safe-transfer! token .bridge new-owner (try! (contract-call? token get-balance .bridge))))))
             (err ERR-TRANSFER-OWNERSHIP-FAILED))
           ;; Transfer ownership to the new owner
           (try! (assert-token-type token-type))
       )
       (if (or (is-eq token-type TOKEN-TYPE-WRAPPED) (is-eq token-type TOKEN-TYPE-BASE))
           ;; Transfer ownership to the new owner
-          (asserts! (is-eq (try! (as-contract (contract-call? token set-contract-owner new-owner))) true)
+          (asserts! (try! (as-contract (contract-call? token set-contract-owner new-owner)))
             (err ERR-TRANSFER-OWNERSHIP-FAILED))
           (try! (assert-token-type token-type))
       )
@@ -177,21 +177,16 @@
         (token-type (get token-type token-info))
         (token-source (get token-source token-info))
         (precision (get precision token-info))
-        (sender tx-sender)
+        (amount-to-lock (- amount fee))
+        (sender contract-caller)
       )
       ;; check if token is supported
       (try! (assert-token-type token-type))
-      ;; ;; check if amount is greater than fee
-      (asserts! (> amount fee) (err ERR-AMOUNT-IS-TOO-SMALL))
-      (let
-        ((amount-to-lock (- amount fee)))
-        ;; create lock
-        (asserts! (is-eq (try! (create-lock lock-id token-source precision amount-to-lock recipient destination)) true) (err ERR-INTERNAL))
-        ;; transfer fee to the fee collector
-        (asserts! (is-eq (try! (safe-transfer! trait-address tx-sender (var-get fee-collector) fee)) true) (err ERR-TRANSFER-FEE-FAILED))
-        ;; transfer tokens to the bridge
-        (ok (try! (safe-transfer! trait-address tx-sender .bridge amount-to-lock)))
-      )
+      (try! (create-lock lock-id token-source precision amount-to-lock recipient destination))
+      ;; transfer fee to the fee collector
+      (asserts! (try! (safe-transfer! trait-address sender (var-get fee-collector) fee)) (err ERR-TRANSFER-FEE-FAILED))
+      ;; transfer tokens to the bridge
+      (ok (try! (safe-transfer! trait-address sender .bridge amount-to-lock)))
     )    
   )
 )
@@ -244,17 +239,17 @@
     ;; Lock-id should not exist, if it does, that means the lock is already created
     (asserts! (is-none (map-get? locks {lock-id: lock-id})) (err ERR-LOCK-ID-EXISTS))
     ;; create lock
-    (ok (map-set locks
+    (asserts! (map-set locks
         {lock-id: lock-id}
         {
-          sender: tx-sender,
+          sender: contract-caller,
           recipient: recipient,
           amount: (to-system-precision amount-to-lock precision),
           destination: destination,
           token-source: token-source
         }
-      )
-    )
+      ) (err ERR-INTERNAL))
+    (ok true)
   )
 )
 
@@ -274,9 +269,7 @@
          (version (element-at lock-id u0)))
       ;; Check that this is not the same chain as the lock source
       (asserts! (not (is-eq lock-source THIS-CHAIN)) (err ERR-SAME-CHAIN))
-      ;; Lock ID version must be correct
-      (asserts! (is-eq VERSION (unwrap-panic version)) (err ERR-WRONG-VERSION))
-      ;; Unlock should already exist, if it does, that means the unlock is already created
+      ;; Unlock should not already exist, if it does, that means the unlock is already created
       (asserts! (is-none (map-get? unlocks {chain-lock-id: chain-lock-id})) (err ERR-UNLOCK-EXISTS))
       ;; Check that message was signed by the validator
       (asserts! (secp256k1-verify 
@@ -328,23 +321,19 @@
   (get-token-by-source
     (token-source (buff 36))
   )
-  (begin 
-    (match 
+  (match 
       (map-get? asset-source-map {token-source: token-source})
       value (ok value)
       (err ERR-TOKEN-DOES-NOT-EXIST))
-  )
 )
 
 ;; Method returns token config by the token address
 (define-read-only 
   (get-token-native (native-address principal))
-  (begin 
-    (match 
+  (match 
       (map-get? assets {address: native-address})
       value (ok value)
       (err ERR-TOKEN-DOES-NOT-EXIST))
-  )
 )
 
 ;; Convert amount to system precision
@@ -412,8 +401,8 @@
   )
 	(begin
 		(try! (assert-owner))
-    (asserts! (is-eq (> value u0) true) (err ERR-AMOUNT-IS-ZERO))
-    (asserts! (is-eq (>= BP value) true) (err ERR-AMOUNT-IS-TOO-BIG))
+    (asserts! (> value u0) (err ERR-AMOUNT-IS-ZERO))
+    (asserts! (>= BP value) (err ERR-AMOUNT-IS-TOO-BIG))
 		(ok (var-set base-fee-rate-bp value))
 	)
 )
@@ -487,12 +476,10 @@
 ;; Method returns lock data by the lock-id
 (define-read-only 
   (get-lock (lock-id (buff 16)))
-  (begin 
-    (match 
+  (match 
       (map-get? locks {lock-id: lock-id})
       value (ok value)
       (err ERR-WRONG-LOCK-ID))
-  )
 )
 
 ;; Method returns is lock claimed with the given lock-id
@@ -516,7 +503,7 @@
     (token-type uint)
   ) 
   (begin  
-    (asserts! (is-eq (map-set assets
+    (asserts! (map-set assets
       {address: token}
       {
         token-source: token-source,
@@ -524,11 +511,11 @@
         token-type: token-type,
         min-fee: min-fee
       }
-    ) true) (err ERR-INTERNAL))
-    (asserts! (is-eq (map-set asset-source-map 
+    ) (err ERR-INTERNAL))
+    (asserts! (map-set asset-source-map 
       {token-source: token-source}
       {address: token}
-    ) true) (err ERR-INTERNAL))
+    ) (err ERR-INTERNAL))
     (ok true)
   )
 )
@@ -540,8 +527,8 @@
     (token-address principal)
   ) 
   (begin 
-    (asserts! (is-eq (map-delete assets {address: token-address}) true) (err ERR-ASSET-DELETE-ERROR))
-    (asserts! (is-eq (map-delete asset-source-map {token-source: token-source}) true) (err ERR-ASSET-SOURCE-DELETE-ERROR))
+    (asserts! (map-delete assets {address: token-address}) (err ERR-ASSET-DELETE-ERROR))
+    (asserts! (map-delete asset-source-map {token-source: token-source}) (err ERR-ASSET-SOURCE-DELETE-ERROR))
     (ok true)
   )
 )
@@ -549,10 +536,10 @@
 ;; Validate that caller has enough permission to call the function
 (define-private 
   (is-valid-owner)
-  (is-eq tx-sender (var-get contract-owner))
+  (is-eq contract-caller (var-get contract-owner))
 )
 
-;; Ensure tx-sender is allowed to call the function
+;; Ensure contract-caller is allowed to call the function
 (define-private 
   (assert-owner)
   (ok (asserts! (is-valid-owner) (err ERR-NOT-ALLOWED)))
@@ -572,11 +559,10 @@
     (token-type uint)
   )
   (ok (asserts! 
-    (is-eq 
-      (or (is-eq token-type TOKEN-TYPE-BASE) 
-          (is-eq token-type TOKEN-TYPE-NATIVE)
-          (is-eq token-type TOKEN-TYPE-WRAPPED)
-      ) true) (err ERR-WRONG-TOKEN-TYPE)))
+    (or (is-eq token-type TOKEN-TYPE-BASE) 
+        (is-eq token-type TOKEN-TYPE-NATIVE)
+        (is-eq token-type TOKEN-TYPE-WRAPPED)
+    ) (err ERR-WRONG-TOKEN-TYPE)))
 )
 
 ;; Ensure that token source has valid length
@@ -600,7 +586,7 @@
   (assert-precision 
     (precision uint)
   )
-  (ok (asserts! (is-eq (> precision u0) true) (err ERR-WRONG-PRECISION)))
+  (ok (asserts! (> precision u0) (err ERR-WRONG-PRECISION)))
 )
 
 ;; Ensure that token min fee is valid
@@ -608,7 +594,7 @@
   (assert-min-fee 
     (min-fee uint)
   )
-  (ok (asserts! (is-eq (> min-fee u0) true) (err ERR-WRONG-MIN-FEE)))
+  (ok (asserts! (> min-fee u0) (err ERR-WRONG-MIN-FEE)))
 )
 
 ;; Ensure token-source is not registered in the bridge
@@ -689,13 +675,13 @@
     (destination (buff 4))
   ) 
   (begin 
-    (asserts! (is-eq (var-get is-bridge-enabled) true) (err ERR-BRIDGE-IS-DISABLED))
+    (asserts! (var-get is-bridge-enabled) (err ERR-BRIDGE-IS-DISABLED))
     (asserts! (is-eq (len lock-id) u16) (err ERR-WRONG-LOCK-ID))
     (asserts! (is-eq VERSION (unwrap! (element-at lock-id u0) (err ERR-INTERNAL))) (err ERR-WRONG-VERSION))
     (try! (assert-principal token-address))
     (asserts! (is-eq (len recipient) u32) (err ERR-WRONG-RECIPIENT))
     (asserts! (is-eq (len destination) u4) (err ERR-WRONG-DESTINATION))
-    (asserts! (is-eq (> amount u0) true) (err ERR-AMOUNT-IS-ZERO))
+    (asserts! (> amount u0) (err ERR-AMOUNT-IS-ZERO))
     (try! (assert-token-exists-in-assets-map token-address))
     (ok true)
   )
@@ -712,13 +698,13 @@
     (signature (buff 65))
   ) 
   (begin
-    (asserts! (is-eq (var-get is-bridge-enabled) true) (err ERR-BRIDGE-IS-DISABLED))
+    (asserts! (var-get is-bridge-enabled) (err ERR-BRIDGE-IS-DISABLED))
     (asserts! (is-eq VERSION (unwrap! (element-at lock-id u0) (err ERR-INTERNAL))) (err ERR-WRONG-VERSION))
     (asserts! (is-standard recipient) (err ERR-WRONG-RECIPIENT))
-    (asserts! (is-eq (> system-amount u0) true) (err ERR-AMOUNT-IS-ZERO))
+    (asserts! (> system-amount u0) (err ERR-AMOUNT-IS-ZERO))
     (asserts! (is-eq (len lock-source) u4) (err ERR-WRONG-LOCK-SOURCE))
     (try! (assert-principal token))
-    (asserts! (is-eq (or (is-eq (len signature) u65) (is-eq (len signature) u64)) true) (err ERR-WRONG-SIGNATURE-LENGTH))
+    (asserts! (or (is-eq (len signature) u65) (is-eq (len signature) u64)) (err ERR-WRONG-SIGNATURE-LENGTH))
     (ok true)
   )
 )

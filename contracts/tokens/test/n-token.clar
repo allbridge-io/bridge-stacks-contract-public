@@ -7,7 +7,7 @@
 
 (define-data-var token-uri (string-utf8 256) u"")
 (define-data-var precision uint u9)
-(define-data-var contract-owner principal tx-sender)
+(define-data-var contract-owner principal contract-caller)
 
 (define-read-only 
 	(get-contract-owner)
@@ -17,7 +17,7 @@
 (define-public 
 	(set-contract-owner (owner principal))
 	(begin
-		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
+		(asserts! (is-eq contract-caller (var-get contract-owner)) ERR-NOT-AUTHORIZED)
 		(asserts! (is-standard owner) ERR-NOT-AUTHORIZED)
 		(ok (var-set contract-owner owner))
 	)
@@ -48,7 +48,7 @@
 (define-public
 	(set-precision (value uint))
 	(begin
-		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
+		(asserts! (is-eq contract-caller (var-get contract-owner)) ERR-NOT-AUTHORIZED)
 		(asserts! (is-eq (> value u0) true) ERR-NOT-AUTHORIZED)
 		(ok (var-set precision value))
 	)
@@ -66,7 +66,7 @@
 		(value (string-utf8 256))
 	)
 	(begin
-		(asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
+		(asserts! (is-eq contract-caller (var-get contract-owner)) ERR-NOT-AUTHORIZED)
 		(asserts! (is-eq (> (len value) u0) true) ERR-NOT-AUTHORIZED)
 		(ok (var-set token-uri value))
 	)
@@ -88,7 +88,6 @@
 		(asserts! (is-standard sender) ERR-WRONG-PRINCIPAL)
 		(asserts! (is-standard recipient) ERR-WRONG-PRINCIPAL)
 		(asserts! (is-eq (> amount u0) true) ERR-WRONG-AMOUNT)
-		(asserts! (is-eq sender tx-sender) ERR-NOT-AUTHORIZED)
 		(transfer! amount sender recipient memo)
 	)
 )
